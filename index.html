@@ -308,7 +308,6 @@
 (function() {
   'use strict';
 
-  // ── CONFIG ──────────────────────────────────────────────────────────────
   const SCENES = [
     'escenas/escena1.JPG',
     'escenas/escena2.JPG',
@@ -316,56 +315,47 @@
     'escenas/escena4.JPG'
   ];
 
-  const INITIAL_FOV    = 75 * Math.PI / 180;   // radians
+  const INITIAL_FOV    = 75 * Math.PI / 180;
   const MIN_FOV        = 20 * Math.PI / 180;
   const MAX_FOV        = 120 * Math.PI / 180;
-  const INITIAL_YAW    = -Math.PI / 2;          // face scene front (adjust if needed)
+  const INITIAL_YAW    = -Math.PI / 2;
   const INITIAL_PITCH  = 0;
 
-  // ── INIT VIEWER ─────────────────────────────────────────────────────────
   const panoEl = document.getElementById('pano');
 
   const viewerOpts = {
     controls: {
-      mouseViewMode: 'drag'       // 'drag' feels most natural for 360 photos
+      mouseViewMode: 'drag'
     },
     stage: {
-      progressive: true           // loads low-res first while high-res loads
+      progressive: true
     }
   };
 
   const viewer = new Marzipano.Viewer(panoEl, viewerOpts);
 
-  // ── VIEW LIMITER ─────────────────────────────────────────────────────────
-  // traditional(maxRes, maxFov): limits how close and how wide you can look
   const limiter = Marzipano.RectilinearView.limit.traditional(
-    4096,                // max resolution in pixels (match your image size)
+    2048,
     MAX_FOV
   );
 
-  // ── SHARED VIEW ──────────────────────────────────────────────────────────
-  // One RectilinearView shared across scenes so pan/tilt state is kept
   const view = new Marzipano.RectilinearView(
     { yaw: INITIAL_YAW, pitch: INITIAL_PITCH, fov: INITIAL_FOV },
     limiter
   );
 
-  // ── CREATE SCENES ────────────────────────────────────────────────────────
   const scenes = SCENES.map(function(url, idx) {
     const source   = Marzipano.ImageUrlSource.fromString(url);
-    // EquirectGeometry: tells Marzipano this is a full equirectangular panorama
-    // The array defines level widths — single level is fine for static JPEGs
-    const geometry = new Marzipano.EquirectGeometry([{ width: 8192 }]);
+    const geometry = new Marzipano.EquirectGeometry([{ width: 2048 }]);
 
     return viewer.createScene({
       source:        source,
       geometry:      geometry,
       view:          view,
-      pinFirstLevel: true    // keeps the lowest-res tile pinned = no blank flash
+      pinFirstLevel: true
     });
   });
 
-  // ── ACTIVE SCENE TRACKING ────────────────────────────────────────────────
   let currentIdx = 0;
 
   function changeScene(num) {
@@ -377,17 +367,14 @@
       transitionDuration: 600
     });
 
-    // Update UI
     document.getElementById('current-scene').textContent = num;
     document.querySelectorAll('.scene-btn').forEach(function(btn, i) {
       btn.classList.toggle('active', i + 1 === num);
     });
   }
 
-  // Expose globally for onclick handlers
   window.changeScene = changeScene;
 
-  // ── FOV SLIDER ───────────────────────────────────────────────────────────
   const fovSlider = document.getElementById('fov-slider');
 
   fovSlider.addEventListener('input', function() {
@@ -395,8 +382,6 @@
     view.setFov(deg * Math.PI / 180);
   });
 
-  // Also update slider if user pinch-zooms
-  // Marzipano updates the view; we poll for changes
   function syncSlider() {
     const currentFovDeg = view.fov() * 180 / Math.PI;
     if (Math.abs(parseFloat(fovSlider.value) - currentFovDeg) > 0.5) {
@@ -406,7 +391,6 @@
   }
   syncSlider();
 
-  // ── COMPASS ──────────────────────────────────────────────────────────────
   const compassSvg = document.querySelector('#compass svg');
   function updateCompass() {
     const yawDeg = view.yaw() * 180 / Math.PI;
@@ -415,22 +399,16 @@
   }
   updateCompass();
 
-  // ── LAUNCH FIRST SCENE ───────────────────────────────────────────────────
   scenes[0].switchTo();
 
-  // ── HIDE LOADER ──────────────────────────────────────────────────────────
-  // Wait for the first scene image to actually start rendering
   setTimeout(function() {
     const loader = document.getElementById('loader');
     loader.classList.add('hidden');
   }, 900);
 
-  // ── RESIZE ───────────────────────────────────────────────────────────────
   window.addEventListener('resize', function() {
     viewer.updateSize();
   });
-
-  console.log('[Cayman Creek] Marzipano viewer ready');
 })();
 </script>
 </body>
