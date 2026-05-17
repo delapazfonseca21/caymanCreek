@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cayman Creek – Vista Aérea 360°</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Barlow:wght@300;400;500&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #c9a84c;
+      --gold-light: #e4c97e;
+      --cream: #f5f0e8;
+      --dark: #0e1117;
+      --dark-mid: #1a1f2e;
+      --glass: rgba(14, 17, 23, 0.72);
+      --glass-border: rgba(201, 168, 76, 0.25);
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--dark);
+      overflow: hidden;
+      font-family: 'Barlow', sans-serif;
+      color: var(--cream);
+    }
+
+    #pano {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--dark);
+    }
+
+    #pano > div, #pano canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: var(--dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.6s ease, visibility 0.6s;
+    }
+    #loader.hidden { opacity: 0; visibility: hidden; }
+
+    #loader .brand-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      font-weight: 300;
+      letter-spacing: 0.18em;
+      color: var(--gold);
+      margin-bottom: 0.3em;
+    }
+    #loader .brand-sub {
+      font-size: 0.72rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: rgba(245,240,232,0.45);
+      margin-bottom: 2.8rem;
+    }
+    .loader-bar-track {
+      width: 180px; height: 1px;
+      background: rgba(201,168,76,0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    .loader-bar-fill {
+      position: absolute;
+      left: -100%; top: 0;
+      width: 100%; height: 100%;
+      background: var(--gold);
+      animation: loaderSlide 1.4s ease-in-out infinite;
+    }
+    @keyframes loaderSlide {
+      0%   { left: -100%; }
+      50%  { left: 0%; }
+      100% { left: 100%; }
+    }
+
+    #topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      background: transparent;
+      pointer-events: none;
+    }
+
+    .brand h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.3rem, 3vw, 2rem);
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .brand p {
+      font-size: clamp(0.58rem, 1.2vw, 0.68rem);
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(245,240,232,0.5);
+      margin-top: 3px;
+    }
+
+    #bottombar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      padding: 18px 24px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      z-index: 10;
+      background: transparent;
+    }
+
+    .scene-btn {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--glass-border);
+      background: var(--glass);
+      color: rgba(245,240,232,0.65);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.05rem;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: border-color 0.25s, background 0.25s, color 0.25s, transform 0.18s;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .scene-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold-light);
+      transform: translateY(-2px);
+    }
+    .scene-btn.active {
+      background: rgba(201,168,76,0.18);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .scene-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(245,240,232,0.35);
+      margin-right: 6px;
+    }
+
+    #scene-counter {
+      position: fixed;
+      bottom: 72px; right: 22px;
+      font-size: 0.58rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(245,240,232,0.3);
+      z-index: 10;
+    }
+    #scene-counter span {
+      color: rgba(245,240,232,0.6);
+      font-size: 0.72rem;
+    }
+
+    #fov-control {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    #fov-control label {
+      font-size: 0.52rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(245,240,232,0.3);
+      writing-mode: vertical-lr;
+      transform: rotate(180deg);
+    }
+    #fov-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      writing-mode: vertical-lr;
+      direction: rtl;
+      width: 4px;
+      height: 90px;
+      background: rgba(201,168,76,0.15);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    #fov-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--gold);
+      border: 2px solid var(--dark);
+      box-shadow: 0 0 6px rgba(201,168,76,0.5);
+    }
+    #fov-slider::-moz-range-thumb {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--gold);
+      border: 2px solid var(--dark);
+    }
+
+    #compass {
+      position: fixed;
+      top: 70px; right: 22px;
+      z-index: 10;
+      width: 36px; height: 36px;
+      opacity: 0.55;
+    }
+    #compass svg {
+      width: 100%; height: 100%;
+      transition: transform 0.08s linear;
+    }
+
+    #hint {
+      position: fixed;
+      bottom: 90px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.58rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(245,240,232,0.25);
+      pointer-events: none;
+      z-index: 10;
+      animation: fadeHint 4s ease forwards;
+      animation-delay: 1.5s;
+      opacity: 0;
+      white-space: nowrap;
+    }
+    @keyframes fadeHint {
+      0%   { opacity: 0; }
+      15%  { opacity: 1; }
+      75%  { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="brand-name">Cayman Creek</div>
+  <div class="brand-sub">Complejo Campestre · Vista Aérea</div>
+  <div class="loader-bar-track"><div class="loader-bar-fill"></div></div>
+</div>
+
+<div id="topbar">
+  <div class="brand">
+    <h1>Cayman Creek</h1>
+    <p>Complejo Campestre cerca al Mar · Vista Aérea 360°</p>
+  </div>
+</div>
+
+<div id="compass">
+  <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="18" cy="18" r="16" stroke="rgba(201,168,76,0.4)" stroke-width="1"/>
+    <polygon points="18,4 21,18 18,16 15,18" fill="#c9a84c"/>
+    <polygon points="18,32 21,18 18,20 15,18" fill="rgba(245,240,232,0.25)"/>
+    <circle cx="18" cy="18" r="2" fill="var(--dark)"/>
+  </svg>
+</div>
+
+<div id="fov-control">
+  <label>Zoom</label>
+  <input type="range" id="fov-slider" min="30" max="120" value="75" step="1">
+</div>
+
+<div id="scene-counter">Escena <span id="current-scene">1</span> / 4</div>
+
+<div id="pano"></div>
+
+<div id="bottombar">
+  <span class="scene-label">Escena</span>
+  <button class="scene-btn active" onclick="changeScene(1)">1</button>
+  <button class="scene-btn" onclick="changeScene(2)">2</button>
+  <button class="scene-btn" onclick="changeScene(3)">3</button>
+  <button class="scene-btn" onclick="changeScene(4)">4</button>
+</div>
+
+<div id="hint">Arrastra para explorar</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marzipano@0.10.2/dist/marzipano.js"></script>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── CONFIG ──────────────────────────────────────────────────────────────
+  const SCENES = [
+    'escenas/escena1.JPG',
+    'escenas/escena2.JPG',
+    'escenas/escena3.JPG',
+    'escenas/escena4.JPG'
+  ];
+
+  const INITIAL_FOV    = 75 * Math.PI / 180;   // radians
+  const MIN_FOV        = 20 * Math.PI / 180;
+  const MAX_FOV        = 120 * Math.PI / 180;
+  const INITIAL_YAW    = -Math.PI / 2;          // face scene front (adjust if needed)
+  const INITIAL_PITCH  = 0;
+
+  // ── INIT VIEWER ─────────────────────────────────────────────────────────
+  const panoEl = document.getElementById('pano');
+
+  const viewerOpts = {
+    controls: {
+      mouseViewMode: 'drag'       // 'drag' feels most natural for 360 photos
+    },
+    stage: {
+      progressive: true           // loads low-res first while high-res loads
+    }
+  };
+
+  const viewer = new Marzipano.Viewer(panoEl, viewerOpts);
+
+  // ── VIEW LIMITER ─────────────────────────────────────────────────────────
+  // traditional(maxRes, maxFov): limits how close and how wide you can look
+  const limiter = Marzipano.RectilinearView.limit.traditional(
+    4096,                // max resolution in pixels (match your image size)
+    MAX_FOV
+  );
+
+  // ── SHARED VIEW ──────────────────────────────────────────────────────────
+  // One RectilinearView shared across scenes so pan/tilt state is kept
+  const view = new Marzipano.RectilinearView(
+    { yaw: INITIAL_YAW, pitch: INITIAL_PITCH, fov: INITIAL_FOV },
+    limiter
+  );
+
+  // ── CREATE SCENES ────────────────────────────────────────────────────────
+  const scenes = SCENES.map(function(url, idx) {
+    const source   = Marzipano.ImageUrlSource.fromString(url);
+    // EquirectGeometry: tells Marzipano this is a full equirectangular panorama
+    // The array defines level widths — single level is fine for static JPEGs
+    const geometry = new Marzipano.EquirectGeometry([{ width: 8192 }]);
+
+    return viewer.createScene({
+      source:        source,
+      geometry:      geometry,
+      view:          view,
+      pinFirstLevel: true    // keeps the lowest-res tile pinned = no blank flash
+    });
+  });
+
+  // ── ACTIVE SCENE TRACKING ────────────────────────────────────────────────
+  let currentIdx = 0;
+
+  function changeScene(num) {
+    const idx = num - 1;
+    if (idx === currentIdx) return;
+    currentIdx = idx;
+
+    scenes[idx].switchTo({
+      transitionDuration: 600
+    });
+
+    // Update UI
+    document.getElementById('current-scene').textContent = num;
+    document.querySelectorAll('.scene-btn').forEach(function(btn, i) {
+      btn.classList.toggle('active', i + 1 === num);
+    });
+  }
+
+  // Expose globally for onclick handlers
+  window.changeScene = changeScene;
+
+  // ── FOV SLIDER ───────────────────────────────────────────────────────────
+  const fovSlider = document.getElementById('fov-slider');
+
+  fovSlider.addEventListener('input', function() {
+    const deg = parseFloat(fovSlider.value);
+    view.setFov(deg * Math.PI / 180);
+  });
+
+  // Also update slider if user pinch-zooms
+  // Marzipano updates the view; we poll for changes
+  function syncSlider() {
+    const currentFovDeg = view.fov() * 180 / Math.PI;
+    if (Math.abs(parseFloat(fovSlider.value) - currentFovDeg) > 0.5) {
+      fovSlider.value = currentFovDeg;
+    }
+    requestAnimationFrame(syncSlider);
+  }
+  syncSlider();
+
+  // ── COMPASS ──────────────────────────────────────────────────────────────
+  const compassSvg = document.querySelector('#compass svg');
+  function updateCompass() {
+    const yawDeg = view.yaw() * 180 / Math.PI;
+    compassSvg.style.transform = 'rotate(' + (-yawDeg) + 'deg)';
+    requestAnimationFrame(updateCompass);
+  }
+  updateCompass();
+
+  // ── LAUNCH FIRST SCENE ───────────────────────────────────────────────────
+  scenes[0].switchTo();
+
+  // ── HIDE LOADER ──────────────────────────────────────────────────────────
+  // Wait for the first scene image to actually start rendering
+  setTimeout(function() {
+    const loader = document.getElementById('loader');
+    loader.classList.add('hidden');
+  }, 900);
+
+  // ── RESIZE ───────────────────────────────────────────────────────────────
+  window.addEventListener('resize', function() {
+    viewer.updateSize();
+  });
+
+  console.log('[Cayman Creek] Marzipano viewer ready');
+})();
+</script>
+</body>
+</html>
